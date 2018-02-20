@@ -1,0 +1,25 @@
+{
+  "name": "oauth-js",
+  "version": "1.0.0",
+  "description": "oauth",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "oauth"
+  ],
+  "author": "nsaeris",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.17.1",
+    "console-stamp": "^0.2.6",
+    "hapi": "^16.0.0",
+    "joi": "^9.0.4",
+    "jsonwebtoken": "^8.1.1",
+    "mqtt": "^2.15.3",
+    "node-cache": "^4.1.1",
+    "uuid": "^3.2.1",
+    "xxtea": "^0.2.0"
+  }
+}
