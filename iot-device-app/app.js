@@ -9,10 +9,11 @@ var EventEmitter = require('events').EventEmitter;
 var emitter = new EventEmitter();
 var sms = require("./sms");
 
-const AUTH_URL = "http://localhost:3000/auth";
-const TOKEN_URL = "http://localhost:3000/token";
-const MQTT_URL = 'mqtts://mqtt.googleapis.com:8883';
-var deviceId = 'AER0000007396636';
+var appConfig = require("./appConfig.json");
+const AUTH_URL = appConfig.authUrl;
+const TOKEN_URL = appConfig.tokenUrl;
+const MQTT_URL = appConfig.mqttUrl;
+var deviceId = appConfig.deviceId;
 var clientSecretCache = "";
 
 var localState = uuidV4();

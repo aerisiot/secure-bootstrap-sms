@@ -1,0 +1,6 @@
+{
+  "authUrl":"http://localhost:3000/auth",
+  "tokenUrl":"http://localhost:3000/token",
+  "mqttUrl":"mqtts://mqtt.googleapis.com:8883",
+  "deviceId": "deviceId"
+}
