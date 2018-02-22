@@ -43,7 +43,7 @@ server.connection({
 //Route Handlers
 
 function encrypt(payload, password) {
-    console.log("payload, password", payload, password);
+    //console.log("payload, password", payload, password);
     var crypted = payload;
     //No encryption for now
     // var crypted = xxtea.encrypt(payload, password);
@@ -52,7 +52,7 @@ function encrypt(payload, password) {
     // var cipher = crypto.createCipher(algorithm, password);
     // var crypted = cipher.update(payload,'utf8','hex')
     // crypted += cipher.final('hex');
-    console.log("encrypted ", crypted);
+    //console.log("encrypted ", crypted);
     return crypted;
 }
 
@@ -66,9 +66,10 @@ const authHandler = function(request, reply) {
     var authHeader = headers['authorization'];
     var token = deviceCodeCache.get(deviceProfileId + "_token");
     deviceCodeCache.del(deviceProfileId + "_token");
-    console.log("token from cache " + token);
+
     if (token !== authHeader) {
       //If header does not have the expected value, return forbidden
+      console.log("********Auth failed. Forbidden");
       reply(Boom.forbidden('forbidden'));
     } else {
       //If header has the expected value then send code
@@ -78,7 +79,7 @@ const authHandler = function(request, reply) {
       var payload = {
         clientSecret: clientSecret
       }
-      console.log("Auth response = ", payload);
+      console.log("********Auth successful. Returning clientSecret to obtain access_token", payload);
       reply(payload);
     }
   } else {
@@ -86,7 +87,7 @@ const authHandler = function(request, reply) {
     if (!token) {
       var token = new Buffer(uuidV4()).toString('base64');
       deviceCodeCache.set(deviceProfileId + "_token", token);
-      console.log("Token = " + token);
+      console.log("********Sending token ", token, " by SMS");
 
       //Send token via SMS
       caasClient.getNetworkStatus(aerAAApiBaseUrl, aerAccountId, aerApiKey, deviceProfileId, 'oauth@google.com', function(response) {
@@ -100,7 +101,7 @@ const authHandler = function(request, reply) {
               caasClient.sendSms(serviceConfig.accountId, serviceConfig.apiKey, imsi, smsPayload, function(response) {
                 if (response !== "undefined") {
                   var messageId = response.resourceURL.substr(response.resourceURL.lastIndexOf('/'));
-                  console.log("Message Id = " + messageId);
+                  console.log("********Sent SMS. MessageID = ", messageId);
                 }
               });
             }
@@ -108,16 +109,18 @@ const authHandler = function(request, reply) {
         }
       });
     }
+    console.log("********Auth Failed: Unauthorized");
     reply(Boom.unauthorized("Unauthorized"));
   }
 }
 
 const tokenHandler = function(request, reply) {
-  console.log("Received Token Request ", request.payload, request.headers);
+  console.log("********Received Token Request ", request.payload, request.headers);
   var deviceProfileId = request.payload.clientId;
   var key = deviceProfileId + "_clientSecret";
   var secretFromCache = deviceCodeCache.get(key);
   if (secretFromCache !== request.payload.clientSecret) {
+    console("********Invalid/Unknown clientSecret. Forbidden");
     reply(Boom.forbidden('forbidden'));
   }
   //Generate signed JWT
@@ -136,7 +139,7 @@ const tokenHandler = function(request, reply) {
     'token_type': 'bearer',
     'expires_in': AT_TTL_SEC
   };
-  console.log("Token response = ", payload);
+  console.log("********Token response = ", payload);
   reply(payload).header('giot_project', project).header('giot_location', location).header('giot_registry', registry);
 }
 
