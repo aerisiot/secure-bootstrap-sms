@@ -13,7 +13,7 @@ const deviceCodeCache = new NodeCache();
 //For generating tokens
 const uuidV4 = require('uuid/v4');
 //Token TTL
-const AT_TTL_SEC = 120;
+const AT_TTL_SEC = 3600;
 //Service config containing AerPort accountId and credentials
 var serviceConfig = require("./serviceConfig.json");
 var aerAccountId = serviceConfig.accountId;
@@ -32,7 +32,7 @@ var location = 'us-central1';
 var registry = 'MyReg1';
 
 //For testing only
-const sendSms = false;
+const sendSms = true;
 
 const server = new Hapi.Server();
 server.connection({
@@ -57,7 +57,7 @@ function encrypt(payload, password) {
 }
 
 const authHandler = function(request, reply) {
-  console.log("Received AUTH request ", request.payload, request.headers);
+  console.log("********Received AUTH request ", request.payload, request.headers);
   var deviceProfileId = request.payload.clientId;
   var clientState = request.payload.state;
   var headers = request.headers;
@@ -84,9 +84,7 @@ const authHandler = function(request, reply) {
   } else {
     var token = deviceCodeCache.get(deviceProfileId + "_token");
     if (!token) {
-      //var token = new Buffer(uuidV4()).toString('base64');
-      //Hardcoded for testing
-      var token = uuidV4();//"YTI3YjUzZmItNTY4Ny00MzdlLWFiMWYtMzQxMGI1ODVkNGEz";
+      var token = new Buffer(uuidV4()).toString('base64');
       deviceCodeCache.set(deviceProfileId + "_token", token);
       console.log("Token = " + token);
 
@@ -94,7 +92,7 @@ const authHandler = function(request, reply) {
       caasClient.getNetworkStatus(aerAAApiBaseUrl, aerAccountId, aerApiKey, deviceProfileId, 'oauth@google.com', function(response) {
         if (response && response.IMSI) {
           var imsi = response.IMSI;
-          var dataSession = {ipAddress: "10.5.3.5"};//response.dataSession;
+          var dataSession = response.dataSession;
           if (dataSession) {
             var ipAddress = dataSession.ipAddress;
             var smsPayload = encrypt(token + ':' + clientState, ipAddress);
