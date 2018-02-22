@@ -20,13 +20,14 @@ var localState = uuidV4();
 var waitForSMS = false;
 
 function getToken(url, payload) {
-  console.log("Send Token request [url, payload] = ", url, payload);
+  console.log("********Send Token request");
+  console.log("Token request details [url = ", url, ", payload = ", payload, "]");
   axios({
     method: 'post',
     url: url,
     data: payload
   }).then(function(response){
-    console.log("Token response = ", response.data);
+    console.log("********Token response: OK. Data = ", response.data);
     var respData = response.data;
     var headers = response.headers;
     emitter.emit('ready', respData['access_token'],
@@ -46,14 +47,15 @@ emitter.on("getToken", function() {
 });
 
 function performAuth(url, payload, headers) {
-  console.log("Send Auth request [url, payload, headers] = ", url, payload, headers);
+  console.log("********Send Auth request: ", (headers? "with token from server": "initial request"));
+  console.log("Auth request details [url = ", url, ", payload = ", payload, ", headers = ", headers, "]");
   axios({
     method: 'post',
     url: url,
     data: payload,
     headers: headers
   }).then(function(response){
-    console.log("Auth response = ", response.data);
+    console.log("********Auth response: OK. Data = ", response.data);
     var respData = response.data;
     if (respData.clientSecret !== 'undefined') {
       clientSecretCache = respData.clientSecret;
@@ -64,7 +66,7 @@ function performAuth(url, payload, headers) {
     if (errorData && errorData.statusCode !== 401) {
       console.log("Auth Error = ", errorData);
     } else {
-      console.log("Unauthorized. Check for SMS");
+      console.log("********Auth Response: Unauthorized. Wait for SMS...");
       waitForSMS = true;
       setTimeout(readAndFilterSMSes, 2000);
     }
@@ -72,13 +74,14 @@ function performAuth(url, payload, headers) {
 }
 
 function readAndFilterSMSes() {
-  sms.getsmsTest(function(msgs){
+  sms.getsms(function(msgs){
     if (msgs && msgs.length > 0) {
       console.log("Received sms ", msgs[0]);
       emitter.emit("authtoken", msgs[0]);
       waitForSMS = false;
     }
     if (waitForSMS === true) {
+        console.log("Wait for SMS", msgs);
         setTimeout(readAndFilterSMSes, 2000);
     }
   });
@@ -88,6 +91,10 @@ emitter.on("authtoken", function(msg) {
     var contentParts = msg.content.split(":");
     var tokenFromServer = contentParts[0];
     var stateFromServer = contentParts[1];
+    if (stateFromServer && stateFromServer !== localState) {
+      console.log("State from server not same as localState. Not proceeding with bootstrap");
+      return;
+    }
     var headers = {
       "Authorization": tokenFromServer
     }
@@ -107,9 +114,10 @@ emitter.on("ready", function(accessToken, project, location, registry){
     protocol: 'mqtts',
     secureProtocol: 'TLSv1_2_method'
   });
+  console.log("********Connect to MQTT: endpoint: ", MQTT_URL);
   //Publish IP interfaces on connect
   _mqttClient.on('connect', function(connack) {
-    console.log("Connected to MQTT", connack);
+    console.log("********Connected to MQTT", connack);
     if (connack) {
       var payload = JSON.stringify({
         'state': 'online',
@@ -117,10 +125,12 @@ emitter.on("ready", function(accessToken, project, location, registry){
         'deviceId': deviceId
       });
       var topic = '/devices/'+deviceId+'/state';
-      console.log('MQTT: Publishing state on topic topic %s, message %s', topic, payload);
+      console.log('********MQTT: Publishing state on topic topic %s, message %s', topic, payload);
       _mqttClient.publish(topic, payload, function(err){
         if(err) {
           console.log("Error in publish", err);
+        } else {
+          console.log("********MQTT: Published state successfully. Check Google console.");
         }
       });
     }
